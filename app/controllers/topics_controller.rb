@@ -1,3 +1,4 @@
+
 # == Schema Information
 #
 # Table name: topics
@@ -24,6 +25,7 @@
 #  doc_id           :integer          default(0)
 #  channel          :string           default("email")
 #  kind             :string           default("ticket")
+#  priority         :integer          default(1)
 #
 
 class TopicsController < ApplicationController
@@ -34,6 +36,7 @@ class TopicsController < ApplicationController
   before_action :topic_creation_enabled?, only: ['new', 'create']
   before_action :get_all_teams, only: 'new'
   before_action :get_public_forums, only: ['new', 'create']
+  before_action :check_anonymous_ticket_access, only: :show
 
   layout "clean", only: [:new, :index, :thanks]
   theme :theme_chosen
@@ -60,7 +63,7 @@ class TopicsController < ApplicationController
   end
 
   def tickets
-    @topics = current_user.topics.isprivate.undeleted.chronologic.page params[:page]
+    @topics = current_user.topics.isprivate.undeleted.external.chronologic.page params[:page]
     @page_title = t(:tickets, default: 'Tickets')
     add_breadcrumb @page_title
     respond_to do |format|
@@ -69,7 +72,7 @@ class TopicsController < ApplicationController
   end
 
   def ticket
-    @topic = current_user.topics.undeleted.where(id: params[:id]).first
+    @topic = current_user.topics.undeleted.external.where(id: params[:id]).first
     if @topic
       @posts = @topic.posts.ispublic.chronologic.active.all.includes(:topic, :user, :screenshot_files)
       @page_title = "##{@topic.id} #{@topic.name}"
@@ -83,12 +86,20 @@ class TopicsController < ApplicationController
     end
   end
 
+  def show
+    @topic = Topic.undeleted.external.find_by_hashid(params[:id])
+    redirect_to root_path unless @topic
+
+    if @topic.present?
+      @posts = @topic.posts.ispublic.chronologic.active.all.includes(:topic, :user, :screenshot_files)
+      @page_title = "##{@topic.id} #{@topic.name}"
+      add_breadcrumb t(:tickets, default: 'Tickets'), tickets_path
+      add_breadcrumb @page_title
+    end
+  end
+
   def new
-    @page_title = t(:get_help_button, default: "Open a ticket")
-    @topic = Topic.new
-    @user = @topic.build_user unless user_signed_in?
-    @topic.posts.build
-    add_breadcrumb @page_title
+    initialize_new_ticket_form_vars
   end
 
   def create
@@ -101,8 +112,13 @@ class TopicsController < ApplicationController
       team_list: params[:topic][:team_list],
       channel: 'web')
 
-    if recaptcha_enabled?
-      render :new && return unless verify_recaptcha(model: @topic)
+    associate_with_doc
+
+    if recaptcha_enabled? && !user_signed_in?
+      unless verify_recaptcha(model: @topic)
+        initialize_new_ticket_form_vars
+        render :new && return
+      end
     end
 
     if @topic.create_topic_with_user(params, current_user)
@@ -153,7 +169,26 @@ class TopicsController < ApplicationController
     @topics = Topic.ispublic.tag_counts_on(:tags)
   end
 
+  protected
+
+  def associate_with_doc
+    return unless params[:topic][:doc_id].present?
+    doc = Doc.find(params[:topic][:doc_id])
+    @topic.tag_list = "Feedback, #{doc.category.name}" if doc.present? && doc.category.present?
+  end
+
   private
+
+  def initialize_new_ticket_form_vars
+    @topic = Topic.new(private: AppSettings['settings.default_private']) #unless @topic
+    @user = @topic.build_user unless user_signed_in?
+    @topic.posts.build #unless @topic.posts
+    get_all_teams
+    get_public_forums
+
+    @page_title = t(:get_help_button, default: "Open a ticket")
+    add_breadcrumb @page_title
+  end
 
   def post_params
     params.require(:post).permit(
@@ -165,6 +200,13 @@ class TopicsController < ApplicationController
 
   def get_public_forums
     @forums = Forum.ispublic.all
+  end
+
+  def check_anonymous_ticket_access
+    unless AppSettings['settings.anonymous_access'] == '1'
+      redirect_to root_path
+    end
+    Hashid::Rails.configuration.salt=AppSettings['settings.anonymous_salt']
   end
 
 end

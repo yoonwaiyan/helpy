@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170609170131) do
+ActiveRecord::Schema.define(version: 20180720173011) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -28,6 +28,12 @@ ActiveRecord::Schema.define(version: 20170609170131) do
   add_index "api_keys", ["access_token"], name: "index_api_keys_on_access_token", unique: true, using: :btree
   add_index "api_keys", ["user_id"], name: "index_api_keys_on_user_id", using: :btree
 
+  create_table "ar_internal_metadata", primary_key: "key", force: :cascade do |t|
+    t.string   "value"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "attachinary_files", force: :cascade do |t|
     t.integer  "attachinariable_id"
     t.string   "attachinariable_type"
@@ -43,6 +49,17 @@ ActiveRecord::Schema.define(version: 20170609170131) do
   end
 
   add_index "attachinary_files", ["attachinariable_type", "attachinariable_id", "scope"], name: "by_scoped_parent", using: :btree
+
+  create_table "backups", force: :cascade do |t|
+    t.integer  "user_id"
+    t.text     "csv"
+    t.string   "model"
+    t.string   "csv_name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  add_index "backups", ["user_id"], name: "index_backups_on_user_id", using: :btree
 
   create_table "categories", force: :cascade do |t|
     t.string   "name"
@@ -142,6 +159,19 @@ ActiveRecord::Schema.define(version: 20170609170131) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "imports", force: :cascade do |t|
+    t.string   "status"
+    t.string   "notes"
+    t.string   "model"
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.integer  "submited_record_count"
+    t.text     "imported_ids"
+    t.text     "error_log"
+    t.datetime "created_at",            null: false
+    t.datetime "updated_at",            null: false
+  end
+
   create_table "pg_search_documents", force: :cascade do |t|
     t.text     "content"
     t.integer  "searchable_id"
@@ -196,8 +226,15 @@ ActiveRecord::Schema.define(version: 20170609170131) do
     t.datetime "created_at"
   end
 
+  add_index "taggings", ["context"], name: "index_taggings_on_context", using: :btree
   add_index "taggings", ["tag_id", "taggable_id", "taggable_type", "context", "tagger_id", "tagger_type"], name: "taggings_idx", unique: true, using: :btree
+  add_index "taggings", ["tag_id"], name: "index_taggings_on_tag_id", using: :btree
   add_index "taggings", ["taggable_id", "taggable_type", "context"], name: "index_taggings_on_taggable_id_and_taggable_type_and_context", using: :btree
+  add_index "taggings", ["taggable_id", "taggable_type", "tagger_id", "context"], name: "taggings_idy", using: :btree
+  add_index "taggings", ["taggable_id"], name: "index_taggings_on_taggable_id", using: :btree
+  add_index "taggings", ["taggable_type"], name: "index_taggings_on_taggable_type", using: :btree
+  add_index "taggings", ["tagger_id", "tagger_type"], name: "index_taggings_on_tagger_id_and_tagger_type", using: :btree
+  add_index "taggings", ["tagger_id"], name: "index_taggings_on_tagger_id", using: :btree
 
   create_table "tags", force: :cascade do |t|
     t.string  "name"
@@ -236,9 +273,11 @@ ActiveRecord::Schema.define(version: 20170609170131) do
     t.integer  "doc_id",           default: 0
     t.string   "channel",          default: "email"
     t.string   "kind",             default: "ticket"
+    t.integer  "priority",         default: 1
   end
 
   add_index "topics", ["kind"], name: "index_topics_on_kind", using: :btree
+  add_index "topics", ["priority"], name: "index_topics_on_priority", using: :btree
 
   create_table "users", force: :cascade do |t|
     t.string   "login"
@@ -296,6 +335,7 @@ ActiveRecord::Schema.define(version: 20170609170131) do
     t.boolean  "notify_on_reply",        default: false
     t.string   "account_number"
     t.string   "priority",               default: "normal"
+    t.text     "notes"
   end
 
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree

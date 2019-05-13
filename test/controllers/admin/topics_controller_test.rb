@@ -137,6 +137,19 @@ class Admin::TopicsControllerTest < ActionController::TestCase
       assert_response :success
     end
 
+    test "an #{admin} should be able to unassign an agent" do
+      sign_in users(admin.to_sym)
+      topic = Topic.find(1)
+      topic.assigned_user_id = 1
+      topic.save!
+      assert_difference "Post.count", 1 do
+        xhr :get, :unassign_agent, { assigned_user_id: nil, topic_ids: [1] }
+      end
+      assert_response :success
+      topic.reload
+      assert_nil topic.assigned_user_id, "assigned user should be nil"
+    end
+
     ### tests of changing status
 
     test "an #{admin} posting an internal note should not change status on its own" do
@@ -209,13 +222,21 @@ class Admin::TopicsControllerTest < ActionController::TestCase
       assert_response :success
     end
 
+    test "an #{admin} should be able to open a new discussion with a set channel" do
+      AppSettings['settings.default_channel'] = 'phone'
+      sign_in users(admin.to_sym)
+      xhr :get, :new
+      assert_equal 'phone', assigns(:topic).channel
+      assert_response :success
+    end
+
     test "an #{admin} should be able to create a new private discussion for a new user with an email" do
       sign_in users(admin.to_sym)
       assert_difference "Topic.count", 1 do
         assert_difference "Post.count", 1 do
           assert_difference "User.count", 1 do
-            assert_difference "ActionMailer::Base.deliveries.size", 2 do
-              xhr :post, :create, topic: { user: { name: "a user", email: "anon@test.com" }, name: "some new private topic", post: { body: "this is the body" }, forum_id: 1 }
+            assert_difference "ActionMailer::Base.deliveries.size", 3 do
+              xhr :post, :create, topic: { user: { name: "a user", email: "anon@test.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new' }
             end
           end
         end
@@ -227,8 +248,8 @@ class Admin::TopicsControllerTest < ActionController::TestCase
       assert_difference "Topic.count", 1 do
         assert_difference "Post.count", 1 do
           assert_difference "User.count", 1 do
-            assert_difference "ActionMailer::Base.deliveries.size", 2 do
-              xhr :post, :create, topic: { user: { name: "a user", email: "Anon@test.com" }, name: "some new private topic", post: { body: "this is the body" }, forum_id: 1 }
+            assert_difference "ActionMailer::Base.deliveries.size", 3 do
+              xhr :post, :create, topic: { user: { name: "a user", email: "Anon@test.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new' }
             end
           end
         end
@@ -240,7 +261,7 @@ class Admin::TopicsControllerTest < ActionController::TestCase
       existing_user = users(:user)
       assert_difference "Topic.count", 1 do
         assert_difference "Post.count", 1 do
-          xhr :post, :create, topic: { user: { name: "scott", email: "scott.miller@test.com" }, name: "some new private topic", post: { body: "this is the body" }, forum_id: 1 }
+          xhr :post, :create, topic: { user: { name: "scott", email: "scott.miller@test.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new' }
         end
       end
     end
@@ -250,7 +271,7 @@ class Admin::TopicsControllerTest < ActionController::TestCase
       existing_user = users(:user)
       assert_difference "Topic.count", 1 do
         assert_difference "Post.count", 1 do
-          xhr :post, :create, topic: { user: { name: "scott", email: "Scott.Miller@test.com" }, name: "some new private topic", post: { body: "this is the body" }, forum_id: 1 }
+          xhr :post, :create, topic: { user: { name: "scott", email: "Scott.Miller@test.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new' }
         end
       end
     end
@@ -260,7 +281,7 @@ class Admin::TopicsControllerTest < ActionController::TestCase
       assert_difference "Topic.count", 1 do
         assert_difference "Post.count", 1 do
           assert_difference "User.count", 1 do
-            xhr :post, :create, topic: { user: { name: "a user", home_phone: '34526668', email: "change@me-34526668.com" }, name: "some new private topic", post: { body: "this is the body" }, forum_id: 1 }
+            xhr :post, :create, topic: { user: { name: "a user", home_phone: '34526668', email: "change@me-34526668.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new' }
           end
         end
       end
@@ -273,12 +294,25 @@ class Admin::TopicsControllerTest < ActionController::TestCase
       assert_difference "Topic.count", 1 do
         assert_difference "Post.count", 1 do
           assert_difference "User.count", 1 do
-            xhr :post, :create, topic: { user: { name: "a user", work_phone: '34526668', email: "change@me-34526668.com" }, name: "some new private topic", post: { body: "this is the body" }, channel: "phone", forum_id: 1 }
+            xhr :post, :create, topic: { user: { name: "a user", work_phone: '34526668', email: "change@me-34526668.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, channel: "phone", forum_id: 1, current_status: 'new'}
           end
         end
       end
 
       assert_equal "phone", Topic.last.channel
+    end
+
+    test "an #{admin} created private discussion with assignment should be assigned" do
+      sign_in users(admin.to_sym)
+      assert_difference "Topic.count", 1 do
+        assert_difference "Post.count", 1 do
+          assert_difference "User.count", 1 do
+            xhr :post, :create, topic: { user: { name: "a user", work_phone: '34526668', email: "change@me-34526668.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, channel: "phone", forum_id: 1, current_status: 'new', assigned_user_id: 1}
+          end
+        end
+      end
+
+      assert_equal 1, Topic.last.assigned_user_id
     end
 
     test "an #{admin} should be able to create a new private discussion for an existing user" do
@@ -287,10 +321,30 @@ class Admin::TopicsControllerTest < ActionController::TestCase
         assert_difference "Post.count", 1 do
           assert_no_difference "User.count" do
             assert_difference "ActionMailer::Base.deliveries.size", 2 do
-              xhr :post, :create, topic: { user: { name: "Scott Smith", email: "scott.smith@test.com" }, name: "some new private topic", post: { body: "this is the body" }, forum_id: 1 }
+              xhr :post, :create, topic: { user: { name: "Scott Smith", email: "scott.smith@test.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new' }
             end
           end
         end
+      end
+    end
+
+    test "an #{admin} should be able to create an internal ticket without sending an email to customer" do
+      sign_in users(admin.to_sym)
+      assert_difference "Topic.count", 1 do
+        assert_difference "Post.count", 1 do
+          assert_no_difference "User.count" do
+            assert_difference "ActionMailer::Base.deliveries.size", 1 do
+              xhr :post, :create, topic: { user: { name: "Scott Smith", email: "scott.smith@test.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new', kind: 'internal' }
+            end
+          end
+        end
+      end
+    end
+
+    test "an #{admin} should be able to create an internal ticket and create a new user" do
+      sign_in users(admin.to_sym)
+      assert_difference "User.count", 1 do
+        xhr :post, :create, topic: { user: { name: "Joe Smith", email: "joe.smith34@test.com" }, name: "some new private topic", post: { body: "this is the body", kind: 'first' }, forum_id: 1, current_status: 'new', kind: 'internal' }
       end
     end
 
@@ -298,7 +352,7 @@ class Admin::TopicsControllerTest < ActionController::TestCase
 
     test "an #{admin} should be able to assign_team of a topic" do
       sign_in users(admin.to_sym)
-      xhr :get, :assign_team, { topic_ids: [1], team: "test"}
+      xhr :get, :assign_team, { topic_ids: [1], assign_team: "test"}
       assert_equal ["test"], Topic.find(1).team_list
     end
 
@@ -402,4 +456,22 @@ class Admin::TopicsControllerTest < ActionController::TestCase
     end
   end
 
+  test 'toggle_privacy clear pg search document for private topic' do
+    sign_in users(:agent)
+    topic = create(:topic, private: false)
+    refute_nil topic.pg_search_document
+    xhr :get, :toggle_privacy, { topic_ids: [topic.id], private: true, forum_id: 1}
+    assert_equal topic.reload.private, true
+    assert_nil topic.pg_search_document
+  end
+
+  test 'toggle_privacy create pg search document for public topic' do
+    sign_in users(:agent)
+    topic = create(:topic, private: true)
+    topic.reload
+    assert_nil topic.pg_search_document
+    xhr :get, :toggle_privacy, { topic_ids: [topic.id], private: false, forum_id: 4}
+    assert_equal topic.reload.private, false
+    refute_nil topic.pg_search_document
+  end
 end

@@ -1,17 +1,17 @@
 source 'https://rubygems.org'
 
-gem 'rails', '4.2.8'
+gem 'rails', '4.2.11.1'
 
 # Use postgresql as the database for Active Record
-gem 'pg'
+gem 'pg', '~> 0.20.0'
 gem 'pg_search'
 # Use SCSS for stylesheets
-gem 'sass-rails', '~> 5.0.6'
+gem 'sass-rails', '~> 5.0.7'
 # Use Uglifier as compressor for JavaScript assets
 gem 'uglifier', '>= 1.3.0'
 
 # Explicitly include Nokogiri to control version
-gem 'nokogiri', '>= 1.8.1'
+gem 'nokogiri', '>= 1.8.4'
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
@@ -26,10 +26,10 @@ gem 'turbolinks', '~> 2.5.3'
 gem 'jquery-turbolinks', '~> 2.1.0'
 
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
-gem 'jbuilder', '~> 2.0'
+gem 'jbuilder', '~> 2.8'
 
 # bundle exec rake doc:rails generates the API under doc/api.
-gem 'sdoc', '~> 0.4.0', group: :doc
+gem 'sdoc', '~> 1.0.0', group: :doc
 
 # Summernote is the wysiwyg editor
 gem 'jquery-minicolors-rails'
@@ -42,7 +42,7 @@ gem 'ranked-model'
 # Google Analytics Measurement Protocol
 gem 'staccato'
 
-gem "rails-settings-cached", '~> 0.5'
+gem "rails-settings-cached", '~> 0.5.0'
 gem 'sucker_punch', '~> 2.0'
 
 # Charting
@@ -50,9 +50,10 @@ gem "groupdate"
 gem "chartkick"
 
 # Auth Gems
-gem 'devise'
+gem 'devise', '<= 5.0.0'
 gem 'devise-i18n'
 gem 'devise-bootstrap-views'
+gem 'devise_invitable'
 gem 'omniauth'
 gem 'omniauth-github'
 gem 'omniauth-twitter'
@@ -60,7 +61,7 @@ gem 'omniauth-google-oauth2'
 gem 'omniauth-facebook'
 
 # i18n gems
-gem 'rails-i18n', '~> 4.0.0'
+gem 'rails-i18n', '~> 4.0.9'
 gem 'i18n-country-translations'
 gem 'route_translator'
 gem 'http_accept_language'
@@ -71,28 +72,29 @@ gem 'grape-swagger'
 gem 'grape-entity'
 gem 'grape-swagger-rails'
 gem 'grape-swagger-entity'
-gem 'grape-attack'
+# gem 'grape-attack' #uncomment for rate limiting
 gem 'grape-kaminari'
+gem 'kaminari-grape'
 gem 'rack-cors', :require => 'rack/cors'
 
-gem 'permalink_fu'
 gem 'paper_trail'
-
 gem 'acts-as-taggable-on', '~>3.5'
 
 gem 'kaminari'
 gem 'kaminari-i18n'
 
+gem 'globalize', '= 5.0.1'
 gem 'globalize-versioning'
 gem 'globalize-accessors'
 
 gem 'gravtastic'
 
 # File handling
-gem 'cloudinary', '1.1.2'
+gem 'cloudinary', '1.1.7'
 gem 'attachinary'
 
-gem 'carrierwave', '~> 1.0.0'
+gem 'carrierwave', '~> 1.3.1'
+gem 'fog-aws'
 gem "jquery-fileupload-rails"
 gem 'mini_magick'
 
@@ -105,28 +107,31 @@ gem 'twitter-bootstrap-rails'
 gem 'twitter-bootstrap-rails-confirm'
 gem 'rdiscount'
 gem 'selectize-rails'
-gem "bootstrap-switch-rails"
+gem "bootstrap-switch-rails", '3.3.3' # NOTE: IOS style switches broke with 3.3.4
 gem 'bootstrap-datepicker-rails'
 gem 'bootstrap-select-rails'
+gem 'gemoji'
 
-gem 'config', '~> 1.1.0', git: 'https://github.com/railsconfig/config.git'
+gem 'config', '~> 1.1.0'
 
 # Email/Mail Handling
 gem 'daemons'
 gem 'mailman'#, require: false
 gem 'mail_extract'
+gem 'email_reply_trimmer'
 
 gem 'griddler'
 gem 'griddler-mandrill'
 gem 'griddler-sendgrid'
 gem 'griddler-mailgun'
 gem 'griddler-postmark'
-gem 'griddler-mailin'
 gem 'griddler-sparkpost'
 
-gem 'rails-timeago'
+# html Email
+gem 'inky-rb', require: 'inky'
+gem 'premailer-rails'
 
-gem 'devise_invitable', '~> 1.6'
+gem 'rails-timeago'
 
 # Use ActiveModel has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
@@ -141,11 +146,15 @@ gem 'devise_invitable', '~> 1.6'
 gem 'faker'
 
 gem 'timecop' #used to populate
-
+gem "hashid-rails", "~> 1.0"
 gem 'themes_on_rails'
-gem "recaptcha", require: "recaptcha/rails"
+gem "recaptcha", '< 3', require: "recaptcha/rails" # TODO: Update
 
-gem 'best_in_place', '~> 3.0.1'
+gem 'best_in_place', '~> 3.1'
+
+# Add onboarding component
+gem 'helpy_onboarding', git: 'https://github.com/helpyio/helpy_onboarding', branch: 'master'
+gem 'helpy_imap', git: 'https://github.com/helpyio/helpy_imap', branch: 'master'
 
 group :development, :test do
   # Audit Gemfile for security vulnerabilities
@@ -153,34 +162,39 @@ group :development, :test do
   gem 'byebug'
   gem 'pry'
   gem 'pry-byebug'
-  gem 'spring', '~> 1.4.0'
+  gem 'spring', '~> 2.0.2'
   gem 'annotate'
   gem 'brakeman', require: false
   gem 'rubocop'
   gem 'scss-lint'
   gem 'awesome_print'
+  gem 'rb-readline'
 end
 
 gem 'bulk_insert'
+gem 'roo'
 
 group :development do
   gem "better_errors"
-  gem 'mailcatcher'
 
   # Check Eager Loading / N+1 query problems
-  gem 'bullet'
+  # gem 'bullet'
+  gem 'scout_apm'
 
   # Access an IRB console on exception pages or by using <%= console %> in views
-  gem 'web-console', '~> 2.0'
+  gem 'web-console', '~> 3.3'
 end
 
 group :test do
   gem 'minitest'
   gem 'minitest-reporters'
-  gem 'shoulda'
-  gem 'factory_girl_rails'
-  gem 'capybara'
+  gem 'shoulda', '3.5' # Required for minitest
+  gem 'shoulda-matchers', '~> 2.0'  # Required for minitest
+  gem 'factory_bot_rails'
+  gem 'capybara', '< 3.0'
+  gem 'capybara-email'
   gem 'selenium-webdriver'
+  gem 'chromedriver-helper'
   gem 'launchy'
   gem "codeclimate-test-reporter",require: nil
   gem 'simplecov', :require => false
